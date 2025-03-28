@@ -1,0 +1,86 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task: build
+
+  refresh:
+    cmds:
+      - echo "Refreshing..."
+      - if [ -d ./build ]; then rm -Rf ./build; fi
+      - mkdir ./build
+      - if [ -d ./mokitul_chat_activity_plugin.zip ]; then rm -Rf ./mokitul_chat_activity_plugin.zip; fi
+
+  transpile:
+    dir: ./amd
+    cmds:
+      - echo "Transpiling..."
+      - npx babel ./src/lib.js --out-file ./build/lib.js
+
+  minify:
+    dir: ./amd
+    cmds:
+      - echo "Minifying..."
+      - npx uglifyjs ./build/lib.js --module --compress --source-map "url='build/lib.min.js.map', includeSources" --output ./build/lib.min.js
+
+  copy:
+    cmds:
+      - echo "Copying..."
+      - rm -rf ./build
+      - mkdir ./build
+      - rsync -r --exclude=/build --exclude=mokitul_chat_activity_plugin.zip ./ ./build
+      - echo "Finished copying..."
+
+  clean-up-js:
+    dir: ./build/amd
+    cmds:
+      - echo "Cleaning up..."
+      - rm -rf ./build/lib.js
+      - rm -rf ./node_modules
+      - rm -rf ./src
+      - rm ./babel.config.json
+      - rm ./package.json
+      - rm ./package-lock.json
+
+  clean-up-git:
+    dir: ./build
+    cmds:
+      - echo "Cleaning up..."
+      - rm -rf .git
+
+  clean-up-task:
+    dir: ./build
+    cmds:
+      - echo "Cleaning up..."
+      - rm ./Taskfile.yaml
+      - rm .gitignore
+
+  zip:
+    cmds:
+      - echo "Zipping..."
+      - zip -r ./mokitul_chat_activity_plugin.zip ./build
+
+  clean-up:
+    cmds:
+      - echo "Cleaning up..."
+      - rm -rf ./build
+
+  build:
+    desc: "Build the project"
+    cmds: 
+      - task: refresh
+      - task: transpile
+      - task: minify
+      - task: copy
+      - task: clean-up-js
+      - task: clean-up-git
+      - task: clean-up-task
+      - task: zip
+      - task: clean-up
+
+  # upload js transpiled and minified files to moodle instance
+  # upload:
+  #  cmds:
+  #    - echo "Uploading..."
+  #    - scp /path/to/file username@a:/path/to/destination
